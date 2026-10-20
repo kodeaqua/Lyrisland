@@ -1,15 +1,10 @@
 # Changelog
 
-## Unreleased
-
-### Added
-
-- The island can be resized by dragging its left or right edge: the opposite edge moves symmetrically, the width is remembered per state (compact / expanded / full), and double-clicking an edge restores the default width
-
 ## 0.8.0 — 2026-10-20
 
 ### Added
 
+- The island can be resized by dragging its left or right edge: the opposite edge moves symmetrically, the width is remembered per state (compact / expanded / full), and double-clicking an edge restores the default width
 - "Launch at Login" setting in General, using `SMAppService`
 - "Hide Island When Paused" setting: the island retracts into the top edge while Spotify is paused or closed and springs back out on play, with a Dynamic Island-style animation
 
