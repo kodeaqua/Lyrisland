@@ -1,13 +1,13 @@
 import Foundation
 
-/// Shared LRC format parser. Handles standard `[mm:ss.xx(x)]` timestamps.
+/// Shared LRC format parser. Handles standard `[mm:ss.xx(x)]` timestamps (`,` or `:` before the fraction is tolerated).
 enum LRCParser {
     /// Parse an LRC string into sorted `LyricLine` array.
     /// - Parameters:
     ///   - raw: The raw LRC text.
     ///   - translations: Optional parallel translation lines keyed by time (seconds).
     static func parse(_ raw: String, translations: [TimeInterval: String]? = nil) -> [LyricLine] {
-        let pattern = #"\[(\d{1,2}):(\d{2})\.(\d{2,3})\]\s*(.*)"#
+        let pattern = #"\[(\d{1,2}):(\d{2})[.,:](\d{2,3})\]\s*(.*)"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
 
         var lines: [LyricLine] = []

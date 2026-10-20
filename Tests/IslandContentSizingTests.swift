@@ -5,8 +5,8 @@ import Testing
 struct IslandContentSizingTests {
     @Test("Compact island uses Dynamic Island-sized width")
     func compactWidth() {
-        #expect(IslandContentView.size(for: .compact).width == 220)
-        #expect(IslandContentView.size(for: .compact, attached: true).width == 220)
+        #expect(IslandContentView.size(for: .compact).width == 320)
+        #expect(IslandContentView.size(for: .compact, attached: true).width == 320)
     }
 
     @Test("Compact single-line height is not inflated by artwork")

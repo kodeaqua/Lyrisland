@@ -11,6 +11,12 @@ struct IslandContentView: View {
     @State private var notchWidth: CGFloat? = NSScreen.main?.notchWidth
     @State private var notchHeight: CGFloat = IslandContentView.menuBarHeight(for: NSScreen.main)
 
+    /// Whether the island is on screen. With "hide when paused" on, it retracts
+    /// into the top edge whenever Spotify isn't playing.
+    private var isRevealed: Bool {
+        !appState.hideWhenPaused || syncEngine.isPlaying
+    }
+
     private var cornerRadius: CGFloat {
         islandState == .compact ? 20 : 24
     }
@@ -38,7 +44,24 @@ struct IslandContentView: View {
         .environment(\.rootFontSize, appState.rootFontSize)
         .environment(\.contentColor, appState.contentColor)
         .shadow(color: appState.contentColor.opacity(isInSnapZone ? 0.3 : 0), radius: 8)
+        // Dynamic Island-style reveal: the pill grows out of (and shrinks back
+        // into) the top edge with a springy overshoot.
+        .scaleEffect(isRevealed ? 1 : 0.2, anchor: .top)
+        .opacity(isRevealed ? 1 : 0)
+        .blur(radius: isRevealed ? 0 : 6)
+        .animation(
+            isRevealed
+                ? .spring(response: 0.5, dampingFraction: 0.68)
+                : .spring(response: 0.35, dampingFraction: 0.9),
+            value: isRevealed
+        )
+        .allowsHitTesting(isRevealed)
+        .onChange(of: isRevealed) { _, revealed in
+            // A hidden island must not swallow clicks on whatever is behind it.
+            applyMouseEventPolicy(revealed: revealed)
+        }
         .onAppear {
+            applyMouseEventPolicy(revealed: isRevealed)
             refreshNotchGeometry()
             // The panel was created before its screen (and the user's artwork /
             // dual-line settings) were known, so re-derive its frame now.
@@ -296,8 +319,8 @@ struct IslandContentView: View {
         }
     }
 
-    /// Width of the compact pill, matching the small Dynamic Island-style footprint.
-    static let compactWidth: CGFloat = 220
+    /// Width of the compact pill; wide enough to keep a lyric line readable.
+    static let compactWidth: CGFloat = 320
 
     /// Horizontal spacing inside the compact pill; kept tight so lyrics remain readable.
     static let compactContentSpacing: CGFloat = 8
@@ -397,6 +420,10 @@ struct IslandContentView: View {
                 }
             }
         }
+    }
+
+    private func applyMouseEventPolicy(revealed: Bool) {
+        NSApp.windows.first { $0 is DynamicIslandPanel }?.ignoresMouseEvents = !revealed
     }
 
     private func resizePanel(for state: IslandState) {

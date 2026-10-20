@@ -1,4 +1,5 @@
 import KeyboardShortcuts
+import ServiceManagement
 import SwiftUI
 
 /// The settings categories, in sidebar order.
@@ -91,9 +92,26 @@ struct SettingsView: View {
 
 private struct GeneralTab: View {
     @AppStorage("islandPositionMode") private var positionMode = "attached"
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
         Form {
+            Section {
+                Toggle(String(localized: "settings.general.launch_at_login"), isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, enabled in
+                        do {
+                            if enabled {
+                                try SMAppService.mainApp.register()
+                            } else {
+                                try SMAppService.mainApp.unregister()
+                            }
+                        } catch {
+                            logWarning("Launch at login failed: \(error)")
+                            launchAtLogin = SMAppService.mainApp.status == .enabled
+                        }
+                    }
+            }
+
             Section {
                 Picker(String(localized: "settings.general.position_mode"), selection: $positionMode) {
                     Text(String(localized: "settings.general.position.attached")).tag("attached")
@@ -117,6 +135,7 @@ private struct GeneralTab: View {
 private struct AppearanceTab: View {
     @AppStorage("showArtwork") private var showArtwork = true
     @AppStorage("dualLineMode") private var dualLineMode = false
+    @AppStorage("hideWhenPaused") private var hideWhenPaused = false
     @AppStorage("lyricsAlignment") private var lyricsAlignment = "center"
     @AppStorage("backgroundStyle") private var backgroundStyle = "solid"
     @AppStorage("solidColorHex") private var solidColorHex = "#141414"
@@ -186,6 +205,7 @@ private struct AppearanceTab: View {
             Section {
                 Toggle(String(localized: "settings.appearance.show_artwork"), isOn: $showArtwork)
                 Toggle(String(localized: "settings.appearance.dual_line"), isOn: $dualLineMode)
+                Toggle(String(localized: "settings.appearance.hide_when_paused"), isOn: $hideWhenPaused)
                 Picker(String(localized: "settings.appearance.lyrics_alignment"), selection: $lyricsAlignment) {
                     Text(String(localized: "settings.appearance.alignment.left")).tag("left")
                     Text(String(localized: "settings.appearance.alignment.center")).tag("center")

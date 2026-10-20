@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- "Launch at Login" setting in General, using `SMAppService`
+- "Hide Island When Paused" setting: the island retracts into the top edge while Spotify is paused or closed and springs back out on play, with a Dynamic Island-style animation
+
+### Changed
+
+- The compact island is wider (220 → 320 pt) so lyric lines stay readable
+
+### Fixed
+
+- Lyrics never advanced on systems whose locale uses a comma as the decimal separator: AppleScript returned the player position as `"12,5"`, which failed to parse and pinned the position at 0. The position and duration are now parsed locale-independently, and LRC timestamps with a `,` or `:` before the fraction are accepted too
+
 ## 0.7.2 — 2026-09-16
 
 ### Fixed

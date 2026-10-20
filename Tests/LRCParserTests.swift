@@ -72,3 +72,12 @@ struct LRCParserTests {
         #expect(lines.isEmpty)
     }
 }
+
+@Suite("LRCParser separators")
+struct LRCParserSeparatorTests {
+    @Test("Accepts comma and colon before the fraction")
+    func commaAndColon() {
+        let lines = LRCParser.parse("[00:12,50] a\n[00:15:25] b")
+        #expect(lines.map(\.time) == [12.5, 15.25])
+    }
+}

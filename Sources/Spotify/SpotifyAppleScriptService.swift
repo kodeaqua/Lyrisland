@@ -77,6 +77,14 @@ final class SpotifyAppleScriptService {
         }
     }
 
+    /// Parses a number AppleScript stringified with the user's locale, where the
+    /// decimal separator may be a comma (`"12,5"`) and large values may use
+    /// scientific notation (`"2,15E+5"`). `Double("12,5")` is nil, which used to
+    /// pin the position at 0 and freeze the lyrics.
+    static func parseNumber(_ raw: String) -> Double? {
+        Double(raw.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: "."))
+    }
+
     /// Synchronous execution on the caller's thread — use only from background context.
     private static func executeScript(_ source: String) -> SpotifyPlaybackState? {
         guard let appleScript = NSAppleScript(source: source) else { return nil }
@@ -95,8 +103,8 @@ final class SpotifyAppleScriptService {
         let parts = raw.components(separatedBy: "||")
         guard parts.count >= 7 else { return nil }
 
-        let position = Double(parts[5]) ?? 0
-        let durationMs = Int(parts[4]) ?? 0
+        let position = Self.parseNumber(parts[5]) ?? 0
+        let durationMs = Self.parseNumber(parts[4]).map { Int($0) } ?? 0
         let isPlaying = parts[6] == "playing"
         let artworkURL = parts.count > 7 ? parts[7] : nil
 

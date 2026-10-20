@@ -28,6 +28,10 @@ final class AppState: ObservableObject {
         didSet { UserDefaults.standard.set(dualLineMode, forKey: "dualLineMode") }
     }
 
+    @Published var hideWhenPaused: Bool {
+        didSet { UserDefaults.standard.set(hideWhenPaused, forKey: "hideWhenPaused") }
+    }
+
     @Published var showArtwork: Bool {
         didSet { UserDefaults.standard.set(showArtwork, forKey: "showArtwork") }
     }
@@ -68,6 +72,7 @@ final class AppState: ObservableObject {
             "rootFontSize": 16.0,
         ])
         showArtwork = UserDefaults.standard.bool(forKey: "showArtwork")
+        hideWhenPaused = UserDefaults.standard.bool(forKey: "hideWhenPaused")
         lyricsAlignment = UserDefaults.standard.string(forKey: "lyricsAlignment") ?? "center"
         backgroundStyle = BackgroundStyle(rawValue: UserDefaults.standard.string(forKey: "backgroundStyle") ?? "solid") ?? .solid
         solidColorHex = UserDefaults.standard.string(forKey: "solidColorHex") ?? "#141414"
@@ -86,6 +91,8 @@ final class AppState: ObservableObject {
                 let newBgStyle = BackgroundStyle(rawValue: UserDefaults.standard.string(forKey: "backgroundStyle") ?? "solid") ?? .solid
                 if dualLineMode != newDualLine { dualLineMode = newDualLine }
                 if showArtwork != newShowArtwork { showArtwork = newShowArtwork }
+                let newHideWhenPaused = UserDefaults.standard.bool(forKey: "hideWhenPaused")
+                if hideWhenPaused != newHideWhenPaused { hideWhenPaused = newHideWhenPaused }
                 if lyricsAlignment != newAlignment { lyricsAlignment = newAlignment }
                 if backgroundStyle != newBgStyle { backgroundStyle = newBgStyle }
                 let newSolidHex = UserDefaults.standard.string(forKey: "solidColorHex") ?? "#141414"
