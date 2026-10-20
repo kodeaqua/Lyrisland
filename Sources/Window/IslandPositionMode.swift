@@ -18,6 +18,10 @@ extension UserDefaults {
         static let hasDetachedPosition = "islandHasDetachedPosition"
         static let dualLineMode = "dualLineMode"
         static let showArtwork = "showArtwork"
+
+        static func width(for state: IslandState) -> String {
+            "islandWidth.\(state)"
+        }
     }
 
     /// The appearance settings the island's size depends on, readable before
@@ -28,6 +32,20 @@ extension UserDefaults {
 
     var islandShowsArtwork: Bool {
         object(forKey: Keys.showArtwork) as? Bool ?? true
+    }
+
+    /// The width the user dragged the island to for `state`, if any.
+    func islandWidth(for state: IslandState) -> CGFloat? {
+        let width = double(forKey: Keys.width(for: state))
+        return width > 0 ? CGFloat(width) : nil
+    }
+
+    func setIslandWidth(_ width: CGFloat?, for state: IslandState) {
+        if let width {
+            set(Double(width), forKey: Keys.width(for: state))
+        } else {
+            removeObject(forKey: Keys.width(for: state))
+        }
     }
 
     var islandPositionMode: IslandPositionMode {

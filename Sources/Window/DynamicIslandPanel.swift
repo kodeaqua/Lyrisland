@@ -10,7 +10,11 @@ final class DynamicIslandPanel: NSPanel {
         positionMode = UserDefaults.standard.islandPositionMode
         // Calculate initial size without screen info — notch detection is deferred
         // until the panel is ordered on screen (see orderFront).
-        let initialSize = IslandContentView.size(for: .compact, attached: positionMode == .attached)
+        let initialSize = IslandContentView.size(
+            for: .compact,
+            attached: positionMode == .attached,
+            customWidth: UserDefaults.standard.islandWidth(for: .compact)
+        )
 
         super.init(
             contentRect: NSRect(origin: .zero, size: initialSize),
@@ -27,6 +31,7 @@ final class DynamicIslandPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         isMovableByWindowBackground = false
         animationBehavior = .utilityWindow
+        acceptsMouseMovedEvents = true
 
         let hostingView = NSHostingView(rootView: contentView)
         hostingView.wantsLayer = true
@@ -51,6 +56,13 @@ final class DynamicIslandPanel: NSPanel {
         ])
 
         self.contentView = container
+
+        container.addTrackingArea(NSTrackingArea(
+            rect: .zero,
+            options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        ))
 
         applyPosition()
     }
@@ -155,7 +167,68 @@ final class DynamicIslandPanel: NSPanel {
     /// and should be forwarded to the normal responder chain instead of handled as a panel drag/tap.
     private var isForwardingToControl = false
 
+    // MARK: - Edge Resize
+
+    /// How close (in points) to the left or right edge the cursor must be to grab it.
+    private static let resizeEdgeWidth: CGFloat = 6
+    private static let minimumResizeWidth: CGFloat = 160
+
+    private enum ResizeEdge { case left, right }
+
+    private struct ResizeSession {
+        let edge: ResizeEdge
+        let startMouseX: CGFloat
+        let startWidth: CGFloat
+        let centerX: CGFloat
+    }
+
+    private var resizeSession: ResizeSession?
+
+    private func resizeEdge(atWindowX x: CGFloat) -> ResizeEdge? {
+        if x <= Self.resizeEdgeWidth { return .left }
+        if x >= frame.width - Self.resizeEdgeWidth { return .right }
+        return nil
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        if resizeEdge(atWindowX: event.locationInWindow.x) != nil {
+            NSCursor.resizeLeftRight.set()
+        } else {
+            NSCursor.arrow.set()
+        }
+    }
+
+    override func mouseExited(with _: NSEvent) {
+        if resizeSession == nil { NSCursor.arrow.set() }
+    }
+
+    /// Resizes symmetrically about the horizontal center, so dragging one edge
+    /// moves the opposite edge by the same amount the other way.
+    private func updateResize(_ session: ResizeSession) {
+        let direction: CGFloat = session.edge == .right ? 1 : -1
+        let delta = (NSEvent.mouseLocation.x - session.startMouseX) * direction
+        let maxWidth = min(IslandContentView.maximumWidth, screen?.frame.width ?? .greatestFiniteMagnitude)
+        let width = min(max(session.startWidth + delta * 2, Self.minimumResizeWidth), maxWidth)
+        var newFrame = frame
+        newFrame.size.width = width
+        newFrame.origin.x = session.centerX - width / 2
+        setFrame(newFrame, display: true)
+    }
+
     override func mouseDown(with event: NSEvent) {
+        if let edge = resizeEdge(atWindowX: event.locationInWindow.x) {
+            if event.clickCount == 2 {
+                NotificationCenter.default.post(name: .islandResizeEnded, object: nil)
+                return
+            }
+            resizeSession = ResizeSession(
+                edge: edge,
+                startMouseX: NSEvent.mouseLocation.x,
+                startWidth: frame.width,
+                centerX: frame.midX
+            )
+            return
+        }
         // Check if the click landed on an interactive SwiftUI control (e.g. Menu / Button).
         // If so, let the normal responder chain handle it instead of our custom drag/tap logic.
         let locationInWindow = event.locationInWindow
@@ -193,6 +266,10 @@ final class DynamicIslandPanel: NSPanel {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        if let session = resizeSession {
+            updateResize(session)
+            return
+        }
         if isForwardingToControl { super.mouseDragged(with: event)
             return
         }
@@ -215,6 +292,11 @@ final class DynamicIslandPanel: NSPanel {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if resizeSession != nil {
+            resizeSession = nil
+            NotificationCenter.default.post(name: .islandResizeEnded, object: frame.width)
+            return
+        }
         if isForwardingToControl { isForwardingToControl = false
             super.mouseUp(with: event)
             return
@@ -281,7 +363,8 @@ final class DynamicIslandPanel: NSPanel {
             attached: true,
             dualLine: UserDefaults.standard.islandUsesDualLineLyrics,
             artwork: UserDefaults.standard.islandShowsArtwork,
-            screen: screen
+            screen: screen,
+            customWidth: UserDefaults.standard.islandWidth(for: .compact)
         ))
         positionAttachedToMenuBar()
     }
@@ -296,6 +379,7 @@ final class DynamicIslandPanel: NSPanel {
 }
 
 extension Notification.Name {
+    static let islandResizeEnded = Notification.Name("islandResizeEnded")
     static let islandTapped = Notification.Name("islandTapped")
     static let islandPositionModeChanged = Notification.Name("islandPositionModeChanged")
     static let islandPositionModeSettingsChanged = Notification.Name("islandPositionModeSettingsChanged")

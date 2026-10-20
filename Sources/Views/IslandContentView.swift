@@ -73,6 +73,12 @@ struct IslandContentView: View {
             refreshNotchGeometry()
             resizePanel(for: islandState)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .islandResizeEnded)) { notification in
+            // `object` is the dragged width, or nil when the user double-clicked
+            // an edge to go back to the default.
+            UserDefaults.standard.setIslandWidth(notification.object as? CGFloat, for: islandState)
+            resizePanel(for: islandState)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .islandTapped)) { _ in
             cycleState()
         }
@@ -197,16 +203,19 @@ struct IslandContentView: View {
                 shape.stroke(appState.contentColor.opacity(0.15), lineWidth: 0.5)
             )
 
-            NotchHuggingCompactView(
-                syncEngine: syncEngine,
-                lyricsManager: lyricsManager,
-                appState: appState,
-                notchWidth: nw,
-                notchHeight: notchHeight,
-                earWidth: Self.notchEarWidth,
-                earInset: Self.earRadius
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            // Ears grow with the panel when the user drags it wider.
+            GeometryReader { geo in
+                NotchHuggingCompactView(
+                    syncEngine: syncEngine,
+                    lyricsManager: lyricsManager,
+                    appState: appState,
+                    notchWidth: nw,
+                    notchHeight: notchHeight,
+                    earWidth: max(Self.notchEarWidth, (geo.size.width - nw) / 2),
+                    earInset: Self.earRadius
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .clipShape(shape)
@@ -372,25 +381,30 @@ struct IslandContentView: View {
         attached: Bool = false,
         dualLine: Bool = false,
         artwork: Bool = true,
-        screen: NSScreen? = nil
+        screen: NSScreen? = nil,
+        customWidth: CGFloat? = nil
     ) -> NSSize {
         // Notch-hugging compact layout: only on notched screens in attached mode.
         if let screen, let nw = screen.notchWidth,
            usesNotchHugging(state: state, attached: attached, notchWidth: nw) {
+            // The notch can't shrink, so a custom width only ever widens the ears.
+            let base = notchEarWidth * 2 + nw
+            let width = resolvedWidth(customWidth, base: base, minimum: base)
             return notchHuggingSize(
                 notchWidth: nw,
                 notchHeight: menuBarHeight(for: screen),
-                earWidth: notchEarWidth,
+                earWidth: (width - nw) / 2,
                 lyricsRowHeight: compactLyricsRowHeight(dualLine: dualLine)
             )
         }
 
         let h = contentHeight(for: state, dualLine: dualLine, artwork: artwork)
-        let w: CGFloat = switch state {
+        let base: CGFloat = switch state {
         case .compact: Self.compactWidth
         case .expanded: artwork ? 450 : 380
         case .full: artwork ? 540 : 400
         }
+        let w = resolvedWidth(customWidth, base: base, minimum: (base * 0.7).rounded())
         if attached {
             // On notch screens menuBarHeight covers the top padding need;
             // on non-notch screens it is 0 so we must add verticalPadding
@@ -399,6 +413,16 @@ struct IslandContentView: View {
             return NSSize(width: w, height: h + topExtra)
         }
         return NSSize(width: w, height: h + verticalPadding(for: state) + transitionOverflowMargin)
+    }
+
+    /// Widest the user may drag the island.
+    static let maximumWidth: CGFloat = 900
+
+    /// The width to use given the user's custom width (if any), clamped to what
+    /// the layout can render.
+    static func resolvedWidth(_ custom: CGFloat?, base: CGFloat, minimum: CGFloat) -> CGFloat {
+        guard let custom else { return base }
+        return min(max(custom, minimum), max(maximumWidth, base))
     }
 
     private func cycleState() {
@@ -435,7 +459,8 @@ struct IslandContentView: View {
             artwork: appState.showArtwork,
             // Same fallback as `refreshNotchGeometry`: an off-screen panel reports
             // no screen, and the two must agree on which screen they describe.
-            screen: window.screen ?? NSScreen.main
+            screen: window.screen ?? NSScreen.main,
+            customWidth: UserDefaults.standard.islandWidth(for: state)
         ))
     }
 
