@@ -5,6 +5,8 @@ struct ArtworkView: View {
     let trackId: String?
     let artworkURL: URL?
     let size: CGFloat
+    /// Corner radius; defaults to 15% of `size`.
+    var cornerRadius: CGFloat?
 
     @Environment(\.contentColor) private var contentColor
     @State private var image: NSImage?
@@ -22,7 +24,7 @@ struct ArtworkView: View {
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: size * 0.15))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius ?? size * 0.15))
         .onAppear {
             // Load from memory cache synchronously to avoid flash when view is recreated
             if image == nil, let trackId {

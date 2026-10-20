@@ -14,6 +14,7 @@
 
 ### Fixed
 
+- The album art in the compact island sat too close to the island's rounded edges: the notch-hugging (attached) layout now keeps an even 6 pt inset around the art with a matching corner radius, and the detached compact pill gets slightly more padding and a rounder art corner
 - Lyrics never advanced on systems whose locale uses a comma as the decimal separator: AppleScript returned the player position as `"12,5"`, which failed to parse and pinned the position at 0. The position and duration are now parsed locale-independently, and LRC timestamps with a `,` or `:` before the fraction are accepted too
 
 ## 0.7.2 — 2026-09-16

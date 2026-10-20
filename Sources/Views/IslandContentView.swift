@@ -229,8 +229,13 @@ struct IslandContentView: View {
 
     private var artworkColumn: some View {
         VStack(spacing: 0) {
-            ArtworkView(trackId: syncEngine.currentTrackId, artworkURL: syncEngine.artworkURL, size: artworkSize)
-                .padding(.top, islandState == .full ? 8 : 0)
+            ArtworkView(
+                trackId: syncEngine.currentTrackId,
+                artworkURL: syncEngine.artworkURL,
+                size: artworkSize,
+                cornerRadius: islandState == .compact ? 9 : nil
+            )
+            .padding(.top, islandState == .full ? 8 : 0)
 
             if islandState == .full {
                 sourcePickerBadge
@@ -294,7 +299,7 @@ struct IslandContentView: View {
     private var contentPadding: EdgeInsets {
         switch islandState {
         case .compact:
-            EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12)
+            EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14)
         case .expanded:
             // In attached mode, move bottom padding to top so the content clears the notch.
             // The bottom padding otherwise pushes the bottom-aligned content up into the menu bar area.
@@ -322,7 +327,7 @@ struct IslandContentView: View {
     /// The content-only height (without menu bar extension).
     static func contentHeight(for state: IslandState, dualLine: Bool = false, artwork: Bool = true) -> CGFloat {
         switch state {
-        case .compact: dualLine ? 62 : 38
+        case .compact: dualLine ? 62 : 40
         case .expanded: artwork ? 140 : 120
         case .full: artwork ? 340 : 340
         }

@@ -61,7 +61,8 @@ struct NotchHuggingCompactView: View {
             ArtworkView(
                 trackId: syncEngine.currentTrackId,
                 artworkURL: syncEngine.artworkURL,
-                size: earArtworkSize
+                size: earArtworkSize,
+                cornerRadius: 6
             )
         } else {
             Image(systemName: "music.note")
@@ -76,8 +77,15 @@ struct NotchHuggingCompactView: View {
         PlayingStatusIndicator(syncEngine: syncEngine)
     }
 
-    /// Artwork/placeholder side length, kept inside the ear with a little inset.
+    /// Breathing room between the artwork and the island's edges. Kept equal on
+    /// the top and sides (6pt) so the artwork sits concentric with the concave
+    /// ear corner instead of crowding it.
+    private static let earArtworkInset: CGFloat = 6
+
+    /// Artwork/placeholder side length: fits the ear and the menu-bar row with
+    /// `earArtworkInset` clearance on every side.
     private var earArtworkSize: CGFloat {
-        max(0, min(earWidth - earInset, notchHeight) - 6)
+        let inset = Self.earArtworkInset
+        return max(0, min(earWidth - earInset - inset * 2, notchHeight - inset * 2 + 2))
     }
 }
